@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   format, 
   addDays, 
@@ -19,15 +19,10 @@ import {
   isSameMinute,
   isWithinInterval,
   setSeconds,
-  setMilliseconds
+  setMilliseconds,
+  addMinutes
 } from 'date-fns';
-
-// Mock data - in a real app, this would come from an API
-const mockAppointments = [
-  { id: 1, date: '2025-11-11', time: '10:00 AM', status: 'booked', service: 'Oil Change' },
-  { id: 2, date: '2025-11-11', time: '2:00 PM', status: 'booked', service: 'Tire Rotation' },
-  { id: 3, date: '2025-11-12', time: '9:00 AM', status: 'booked', service: 'Brake Service' },
-];
+import { supabase } from '../lib/supabase';
 
 const workingHours = [
   '8:00 AM - 8:30 AM',
@@ -45,6 +40,12 @@ const breakSlots = [
   '12:00 PM - 12:30 PM'
 ];
 
+// Helper function to check if a time string matches a time range
+const isTimeInRange = (time, range) => {
+  const [start, end] = range.split(' - ');
+  return time >= start && time <= end;
+};
+
 // Helper function to parse time string to Date
 const parseTimeString = (date, timeStr) => {
   const [time, period] = timeStr.split(' ');
@@ -56,12 +57,40 @@ const parseTimeString = (date, timeStr) => {
   return setMinutes(setHours(new Date(date), hours), minutes || 0);
 };
 
-// Check if a time slot is booked
-const isSlotBooked = (date, time, appointments) => {
+// Count appointments for a specific time slot
+const countAppointmentsInSlot = (date, time, appointments) => {
   const slotDate = format(date, 'yyyy-MM-dd');
-  return appointments.some(apt => 
-    apt.date === slotDate && apt.time === time
-  );
+  // Extract just the start time (e.g., '8:00 AM' from '8:00 AM - 8:30 AM')
+  const [startTime] = time.split(' - ');
+  
+  return appointments.filter(apt => {
+    // Check if the appointment is on the same date
+    if (apt.date !== slotDate) return false;
+    
+    // Extract the start time from the appointment's time slot
+    const [aptStartTime] = apt.time.split(' - ');
+    
+    // Compare just the start times
+    return aptStartTime === startTime;
+  }).length;
+};
+
+// Count total appointments for a specific day
+const countAppointmentsForDay = (date, appointments) => {
+  const slotDate = format(date, 'yyyy-MM-dd');
+  return appointments.filter(apt => apt.date === slotDate).length;
+};
+
+// Check if a time slot is fully booked (3 or more cars)
+const isSlotBooked = (date, time, appointments) => {
+  const count = countAppointmentsInSlot(date, time, appointments);
+  console.log(`Slot ${date} ${time} has ${count} appointments`);
+  return count >= 8;
+};
+
+// Check if a day is fully booked (5 or more cars)
+const isDayFullyBooked = (date, appointments) => {
+  return countAppointmentsForDay(date, appointments) >= 35;
 };
 
 // Current time indicator component
@@ -106,10 +135,94 @@ const CurrentTimeIndicator = () => {
 
 const AvailabilityCalendar = ({ selectedDate, selectedTime, onDateSelect, onTimeSelect }) => {
   const [currentWeekStart, setCurrentWeekStart] = useState(startOfWeek(new Date()));
-  const [appointments, setAppointments] = useState(mockAppointments);
+  const [appointments, setAppointments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [selectedSlot, setSelectedSlot] = useState(null);
   const calendarRef = useRef(null);
   
+  // Fetch appointments from Supabase
+  const fetchAppointments = useCallback(async () => {
+    try {
+      console.log('Fetching appointments from Supabase...');
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('appointments')
+        .select('*')
+        .order('appointment_date', { ascending: true })
+        .order('appointment_time', { ascending: true });
+
+      if (error) throw error;
+      
+      // Log raw data from Supabase
+      console.log('Raw data from Supabase:', data);
+      
+      // Transform the data to match the expected format
+      const formattedAppointments = data.map(appt => {
+        // Format time to match the workingHours format (e.g., '8:00 AM - 8:30 AM')
+        const startTime = format(parseISO(`${appt.appointment_date}T${appt.appointment_time}`), 'h:mm a');
+        const endTime = format(addMinutes(parseISO(`${appt.appointment_date}T${appt.appointment_time}`), 30), 'h:mm a');
+        const timeSlot = `${startTime} - ${endTime}`;
+        
+        const formattedAppt = {
+          id: appt.id,
+          date: format(parseISO(appt.appointment_date), 'yyyy-MM-dd'),
+          time: timeSlot,
+          status: appt.status || 'pending',
+          service: appt.service_type || 'Service',
+          full_name: appt.full_name,
+          phone: appt.phone,
+          email: appt.email,
+          vehicle_make: appt.vehicle_make,
+          vehicle_model: appt.vehicle_model,
+          car_number: appt.car_number
+        };
+        console.log('Formatted appointment:', formattedAppt);
+        return formattedAppt;
+      });
+
+      console.log('Fetched appointments:', formattedAppointments);
+      setAppointments(formattedAppointments);
+    } catch (err) {
+      console.error('Error fetching appointments:', err);
+      setError('Failed to load appointments');
+      console.error('Error details:', err.message, err.stack);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Set up real-time subscription
+  useEffect(() => {
+    console.log('Setting up real-time subscription...');
+    // Initial fetch
+    fetchAppointments();
+
+    // Debug: Log current state
+    console.log('Initial appointments state:', appointments);
+    console.log('Current week start:', currentWeekStart);
+
+    // Set up real-time subscription
+    const subscription = supabase
+      .channel('appointments_changes')
+      .on('postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'appointments' 
+        }, 
+        () => {
+          fetchAppointments();
+        }
+      )
+      .subscribe();
+
+    // Clean up subscription on unmount
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [fetchAppointments]);
+
   // Generate days of the current week
   const daysOfWeek = [];
   for (let i = 0; i < 7; i++) {
@@ -154,6 +267,44 @@ const AvailabilityCalendar = ({ selectedDate, selectedTime, onDateSelect, onTime
     end: addDays(currentWeekStart, 6)
   });
   
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+        <span className="ml-2">Loading appointments...</span>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="bg-red-50 border-l-4 border-red-400 p-4">
+        <div className="flex">
+          <div className="flex-shrink-0">
+            <svg className="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+            </svg>
+          </div>
+          <div className="ml-3">
+            <p className="text-sm text-red-700">{error}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Debug: Log current state before rendering
+  console.log('Rendering calendar with appointments:', appointments);
+  console.log('Current week start:', currentWeekStart);
+  console.log('Loading state:', loading);
+  console.log('Error state:', error);
+
+  // Debug: Log current state before rendering
+  console.log('Current appointments state:', appointments);
+  console.log('Current week days:', daysOfWeek.map(d => format(d, 'yyyy-MM-dd')));
+
   // Render day headers (Mon, Tue, etc.)
   const renderDayHeaders = () => {
     return (
@@ -218,7 +369,9 @@ const AvailabilityCalendar = ({ selectedDate, selectedTime, onDateSelect, onTime
             {daysOfWeek.map((day, dayIndex) => {
               const slotDate = format(day, 'yyyy-MM-dd');
               const slotDateTime = parseTimeString(slotDate, time);
+              const appointmentsInSlot = countAppointmentsInSlot(slotDate, time, appointments);
               const isBooked = isSlotBooked(slotDate, time, appointments);
+              const isDayFull = isDayFullyBooked(day, appointments);
               const isSunday = day.getDay() === 0;
               const isBreak = isBreakTime(time);
               const isInPast = isPast(slotDateTime) || isSunday || isBreak;
@@ -228,12 +381,12 @@ const AvailabilityCalendar = ({ selectedDate, selectedTime, onDateSelect, onTime
               
               let slotClass = 'p-4 border-r border-gray-100';
               
-              if (isSunday || isBreak) {
+              if (isDayFull) {
+                slotClass += ' bg-red-100 text-red-800 cursor-not-allowed';
+              } else if (isSunday || isBreak) {
                 slotClass += ' bg-gray-50 text-gray-400';
-              } else if (isBooked) {
+              } else if (isBooked || isInPast) {
                 slotClass += ' bg-red-50 text-red-800 cursor-not-allowed';
-              } else if (isInPast) {
-                slotClass += ' bg-white text-gray-300 cursor-not-allowed';
               } else if (isSelected) {
                 slotClass += ' bg-green-100 border-2 border-green-500 cursor-pointer';
               } else {
@@ -246,10 +399,14 @@ const AvailabilityCalendar = ({ selectedDate, selectedTime, onDateSelect, onTime
                   className={slotClass}
                   onClick={() => handleSlotClick(day, time)}
                 >
-                  {isSunday ? (
+                  {isDayFull ? (
+                    <div className="text-xs text-center text-red-800 font-medium">Fully Booked</div>
+                  ) : isSunday ? (
                     <div className="h-4"></div>
                   ) : isBooked ? (
-                    <div className="text-xs text-center">Booked</div>
+                    <div className="text-xs text-center">
+                      Booked
+                    </div>
                   ) : isInPast ? (
                     <div className="h-4"></div>
                   ) : (

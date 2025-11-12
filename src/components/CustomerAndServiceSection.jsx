@@ -5,7 +5,7 @@ import ServiceSelection from './service';
 const CustomerAndServiceSection = ({ 
   formData, 
   onFormChange, 
-  selectedService, 
+  selectedServices = [], 
   onServiceChange 
 }) => {
   return (
@@ -23,7 +23,7 @@ const CustomerAndServiceSection = ({
           <h3 className="text-xl font-bold text-[#EB0A1E] mb-4">Service Details</h3>
           <div className="p-0 h-full">
             <ServiceSelection 
-              selectedService={selectedService}
+              selectedServices={selectedServices}
               onServiceChange={onServiceChange}
             />
           </div>

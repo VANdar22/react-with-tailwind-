@@ -1,6 +1,6 @@
 import React from 'react'
 
-const summary = ({ formData, selectedService, selectedDate, selectedTime, onBooking }) => {
+const summary = ({ formData, selectedServices = [], selectedDate, selectedTime, onBooking }) => {
   // Booking Summary Component
     return (
       <div className="border border-gray-200 p-6 rounded-lg">
@@ -10,9 +10,20 @@ const summary = ({ formData, selectedService, selectedDate, selectedTime, onBook
             <span className="font-medium text-gray-900">{formData.vehicleMake} {formData.vehicleModel} ({formData.year})</span>
           </div>
           
-          <div className="flex justify-between py-2 border-b border-gray-100">
-            <span className="text-gray-700">Service:</span>
-            <span className="font-medium text-gray-900">{selectedService}</span>
+          <div className="py-2 border-b border-gray-100">
+            <div className="text-gray-700 mb-2">Services:</div>
+            <ul className="space-y-1">
+              {selectedServices.length > 0 ? (
+                selectedServices.map((service, index) => (
+                  <li key={index} className="flex items-center">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#EB0A1E] mr-2"></span>
+                    <span className="text-gray-900">{service}</span>
+                  </li>
+                ))
+              ) : (
+                <li className="text-gray-500">No services selected</li>
+              )}
+            </ul>
           </div>
           
           <div className="flex justify-between py-2 border-b border-gray-100">

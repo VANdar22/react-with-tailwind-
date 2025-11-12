@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { sendAppointmentConfirmation } from './emailService';
 
 // Test function to verify database connection and table access
 export async function testDatabaseConnection() {
@@ -36,6 +37,9 @@ export async function submitAppointment(data) {
     if (!data) {
       throw new Error('No data provided for appointment');
     }
+    
+    // Note: Email sending has been moved to the admin confirmation step
+    console.log('Appointment data received, ready for admin confirmation');
 
     // 2. Check Supabase client initialization
     if (!supabase) {
@@ -68,7 +72,18 @@ export async function submitAppointment(data) {
       car_number: data.carNumber?.trim().toUpperCase() || '',
       region: data.region?.trim() || 'Default',
       branch: data.branch?.trim() || 'Default',
-      service_type: data.serviceType?.trim() || '',
+      // Ensure service_type is sent as an array
+      service_type: (() => {
+        if (Array.isArray(data.services) && data.services.length > 0) {
+          return data.services;
+        } else if (data.serviceType) {
+          return [data.serviceType.trim()];
+        } else if (data.services) {
+          // If services is a string, split it into an array
+          return typeof data.services === 'string' ? [data.services] : [];
+        }
+        return [];
+      })(),
       appointment_date: data.appointmentDate || new Date().toISOString().split('T')[0],
       appointment_time: data.appointmentTime || '',
       status: 'Pending',
@@ -104,7 +119,7 @@ export async function submitAppointment(data) {
     const { data: result, error } = await supabase
       .from('appointments')
       .insert([appointmentData])
-      .select()
+      .select('*')
       .single();
 
     if (error) {

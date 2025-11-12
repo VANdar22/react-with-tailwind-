@@ -37,14 +37,13 @@ const initialFormState = {
   email: '',
   vehicleMake: '',
   vehicleModel: '',
-  year: '',
   carNo: '',
   region: '',
   branch: ''
 };
 
 const [formData, setFormData] = useState(initialFormState);
-const [selectedService, setSelectedService] = useState('Oil Change');
+const [selectedServices, setSelectedServices] = useState([]);
 const [selectedDate, setSelectedDate] = useState('');
 const [selectedTime, setSelectedTime] = useState('');
 const [isSubmitting, setIsSubmitting] = useState(false);
@@ -52,6 +51,10 @@ const [alert, setAlert] = useState({ message: '', type: 'success' });
 
   const handleFormChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleServiceChange = (services) => {
+    setSelectedServices(services);
   };
 
   const showAlert = (message, type = 'success') => {
@@ -68,8 +71,8 @@ const [alert, setAlert] = useState({ message: '', type: 'success' });
       console.log('Starting appointment booking...');
       
       // Basic form validation
-      if (!formData.fullName || !formData.phoneNo || !selectedDate || !selectedTime) {
-        throw new Error('Please fill in all required fields');
+      if (!formData.fullName || !formData.phoneNo || !selectedDate || !selectedTime || selectedServices.length === 0) {
+        throw new Error('Please fill in all required fields and select at least one service');
       }
 
       const result = await submitAppointment({
@@ -77,23 +80,23 @@ const [alert, setAlert] = useState({ message: '', type: 'success' });
         phone: formData.phoneNo.trim(),
         email: formData.email?.trim() || '',
         vehicleMake: formData.vehicleMake.trim(),
-        vehicleModel: formData.vehicleModel?.trim() || '',
+        vehicleModel: formData.vehicleModel.trim(),
         carNumber: formData.carNo.trim(),
-        serviceType: selectedService,
+        services: selectedServices, // Now passing an array of services
         appointmentDate: selectedDate,
         appointmentTime: selectedTime,
-        region: formData.region || 'Default',
-        branch: formData.branch || 'Default'
+        region: formData.region,
+        branch: formData.branch
       });
       
       console.log('Appointment booking result:', result);
       
       if (result.success) {
-        showAlert('Appointment booked successfully!', 'success');
+        showAlert('Appointment booked successfully! We\'ll get back to you soon.', 'success');
         
         // Reset form to initial state
         setFormData(initialFormState);
-        setSelectedService('Oil Change');
+        setSelectedServices([]);
         setSelectedDate('');
         setSelectedTime('');
         
@@ -125,8 +128,8 @@ const [alert, setAlert] = useState({ message: '', type: 'success' });
         <CustomerAndServiceSection 
           formData={formData}
           onFormChange={handleFormChange}
-          selectedService={selectedService}
-          onServiceChange={setSelectedService}
+          selectedServices={selectedServices}
+          onServiceChange={handleServiceChange}
         />
         
         {/* Availability Calendar Section */}
@@ -150,7 +153,7 @@ const [alert, setAlert] = useState({ message: '', type: 'success' });
             </h2>
             <BookingSummary
               formData={formData}
-              selectedService={selectedService}
+              selectedServices={selectedServices}
               selectedDate={selectedDate}
               selectedTime={selectedTime}
               onBooking={handleBooking}

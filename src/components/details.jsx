@@ -26,23 +26,21 @@ const Details = ({ formData, onFormChange }) => {
     { id: 'greater-accra', name: 'Greater Accra' },
     { id: 'ashanti', name: 'Ashanti' },
     { id: 'western', name: 'Western' },
-    { id: 'eastern', name: 'Eastern' },
     { id: 'volta', name: 'Volta' },
   ];
 
   const branches = {
     'greater-accra': [
-      { id: 'east-legon', name: 'East Legon Workshop' },
-      { id: 'spintex', name: 'Spintex Workshop' },
+      { id: 'accra', name: 'Accra Branch' },
+      { id: 'east-legon', name: 'Legon Branch' },
+      { id: 'spintex', name: 'Motoway Branch' },
     ],
     'ashanti': [
-      { id: 'kumasi-central', name: 'Kumasi Central Workshop' },
+      { id: 'kumasi-central', name: 'Kumasi Branch' },
+      { id: 'kumasi-central', name: 'KumasBranch' },
     ],
     'western': [
-      { id: 'takoradi', name: 'Takoradi Workshop' },
-    ],
-    'eastern': [
-      { id: 'koforidua', name: 'Koforidua Workshop' },
+      { id: 'takoradi', name: 'Takoradi Branch' },
     ],
     'volta': [
       { id: 'ho', name: 'Ho Workshop' },

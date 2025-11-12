@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import AppointmentsList from './AppointmentsList';
 import { startOfDay, endOfDay, parseISO, isToday } from 'date-fns';
+import { UserCircleIcon } from '@heroicons/react/24/outline';
+import ProfileDropdown from '../../components/admin/ProfileDropdown';
 
 const Dashboard = () => {
   const [loading, setLoading] = useState(true);
@@ -234,36 +236,98 @@ const Dashboard = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <div className="p-4 md:p-8">
-        <h1 className="text-2xl font-bold text-gray-800 mb-6">Admin Dashboard</h1>
-        
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-gray shadow-lg">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex justify-between items-center">
+            <div>
+            <h1 className="text-2xl font-bold text-[#EB0A1E]">Admin Dashboard</h1>
+          </div>
+            <div className="flex items-center space-x-4">
+              <Link
+                to="/admin/appointments/new"
+                className="inline-flex items-center px-5 py-2.5 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200"
+              >
+                <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+                New Appointment
+              </Link>
+              <ProfileDropdown />
+            </div>
+          </div>
+        </div>
+      </header>
+      
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h3 className="text-lg font-medium text-gray-500">Total Appointments</h3>
-            <p className="text-3xl font-bold text-indigo-600">{stats.total}</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+          <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-200 border-l-4 border-[#EB0A1E]">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-500 uppercase tracking-wider">Total</p>
+                <p className="mt-2 text-3xl font-bold text-gray-900">{stats.total}</p>
+              </div>
+              <div className="p-3 rounded-full bg-red-50">
+                <svg className="h-6 w-6 text-[#EB0A1E]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+              </div>
+            </div>
           </div>
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h3 className="text-lg font-medium text-gray-500">Today's Appointments</h3>
-            <p className="text-3xl font-bold text-green-600">{stats.today}</p>
+          
+          <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-200 border-l-4 border-green-500">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-500 uppercase tracking-wider">Today</p>
+                <p className="mt-2 text-3xl font-bold text-gray-900">{stats.today}</p>
+              </div>
+              <div className="p-3 rounded-full bg-green-50">
+                <svg className="h-6 w-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
+            </div>
           </div>
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h3 className="text-lg font-medium text-gray-500">Pending</h3>
-            <p className="text-3xl font-bold text-yellow-500">{stats.pending}</p>
+          
+          <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-200 border-l-4 border-yellow-500">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-500 uppercase tracking-wider">Pending</p>
+                <p className="mt-2 text-3xl font-bold text-gray-900">{stats.pending}</p>
+              </div>
+              <div className="p-3 rounded-full bg-yellow-50">
+                <svg className="h-6 w-6 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+            </div>
           </div>
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h3 className="text-lg font-medium text-gray-500">Completed</h3>
-            <p className="text-3xl font-bold text-blue-600">{stats.completed}</p>
+          
+          <div className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-200 border-l-4 border-blue-500">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-500 uppercase tracking-wider">Completed</p>
+                <p className="mt-2 text-3xl font-bold text-gray-900">{stats.completed}</p>
+              </div>
+              <div className="p-3 rounded-full bg-blue-50">
+                <svg className="h-6 w-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+            </div>
           </div>
         </div>
 
         {/* Appointments List */}
-        <div className="bg-white rounded-lg shadow overflow-hidden mb-8">
-          <div className="p-6 border-b border-gray-200">
-            <h2 className="text-xl font-semibold text-gray-800">Recent Appointments</h2>
+        <div className="bg-white rounded-xl shadow-md overflow-hidden transition-shadow duration-200 hover:shadow-lg">
+          <div className="px-6 py-5 border-b border-gray-200 bg-gray-50">
+            <div className="flex items-center justify-between">
+              <div></div>
+            </div>
           </div>
-          <AppointmentsList isEmbedded={true} />
+          <AppointmentsList isEmbedded={true} onStatusChange={fetchAppointments} />
         </div>
       </div>
 
