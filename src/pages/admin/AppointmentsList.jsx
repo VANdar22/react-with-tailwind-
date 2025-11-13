@@ -703,6 +703,16 @@ const AppointmentsList = (props) => {
             </button>
           </div>
           <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+            {searchTerm && (
+  <div className="mb-6 bg-blue-50 p-3 rounded-lg border border-blue-200">
+    <p className="text-sm text-blue-800 flex items-center">
+      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+      </svg>
+      Showing search results for: <span className="font-semibold ml-1">"{searchTerm}"</span>
+    </p>
+  </div>
+)}
             <div>
               <p className="text-sm text-gray-700">
                 Showing <span className="font-medium">{indexOfFirstItem + 1}</span> to{' '}
