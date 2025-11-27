@@ -1,7 +1,8 @@
-@import "tailwindcss";
+@import "tailwindcss/preflight";
 @import "tailwindcss/utilities";
 
-/* Set default font and remove default card styling */
+/* Custom base styles */
+
 @layer base {
   html {
     font-family: 'League Spartan', sans-serif;
